@@ -27,7 +27,7 @@ When the user says they want to start, test, or initialize the database, call th
 At the end of your response, read the HIDDEN SYSTEM STATE. Ask the user for the parameters needed for their next desired test (e.g., what text payload to save, or which slot ID they want to restore). 
 
 Wait for the user to reply with their instructions. You MUST then invoke the `run_js` tool to execute the query. 
-- script_name: engine.js
+- script_name: index.html
 - data: A single FLAT JSON string containing all variables from the hidden state PLUS the user's requested action ("save" or "restore"), a "saveSlot" string, and an optional "dataPayload" string. DO NOT use nested state objects.
 
 Example of the REQUIRED flat data format for SAVING:
