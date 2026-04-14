@@ -1,24 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>test storage</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f4f4f9;
-            padding: 20px;
-        }
-    </style>
-
-    <script src="engine.js"></script>
+    <title>Test Edge Storage Engine</title>
 </head>
-
 <body>
-    <div id="container">
-       container content
-    </div>
-</body>
+    <script>
+        window['ai_edge_gallery_get_result'] = async (data) => {
+            try {
+                const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
+                // 1. INITIALIZATION Phase
+                if (parsedData.action === "init") {
+                    const initState = {
+                        currentSlot: "default",
+                        activeData: null
+                    };
+                    
+                    const systemStateString = JSON.stringify(initState);
+                    
+                    return JSON.stringify({
+                        result: `Storage engine initialized. Awaiting 'save' or 'restore' commands to test persistence.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`
+                    });
+                }
+
+                // 2. SAVE Phase
+                if (parsedData.action === "save") {
+                    const saveSlot = parsedData.saveSlot || "default";
+                    const dataToSave = parsedData.dataPayload || "Test data payload from LLM";
+
+                    // REAL SAVE LOGIC: Write to the webview's local storage
+                    localStorage.setItem(saveSlot, dataToSave);
+
+                    const nextStateForLLM = {
+                        currentSlot: saveSlot,
+                        activeData: dataToSave
+                    };
+                    
+                    const systemStateString = JSON.stringify(nextStateForLLM);
+
+                    return JSON.stringify({
+                        result: `Successfully saved the data ("${dataToSave}") to slot: "${saveSlot}". You can now close the session and try to restore it later.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`
+                    });
+                }
+
+                // 3. RESTORE Phase
+                if (parsedData.action === "restore") {
+                    const saveSlot = parsedData.saveSlot || "default";
+                    
+                    // REAL RESTORE LOGIC: Read from the webview's local storage
+                    let restoredData = localStorage.getItem(saveSlot);
+
+                    if (restoredData) {
+                        const nextStateForLLM = {
+                            currentSlot: saveSlot,
+                            activeData: restoredData
+                        };
+                        
+                        const systemStateString = JSON.stringify(nextStateForLLM);
+
+                        return JSON.stringify({
+                            result: `SUCCESS: Retrieved data from slot "${saveSlot}". The exact payload is: "${restoredData}".\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`
+                        });
+                    } else {
+                        const systemStateString = JSON.stringify({ currentSlot: saveSlot, activeData: null });
+                        return JSON.stringify({
+                            result: `FAILED: No data found in storage for slot "${saveSlot}". It may have been cleared.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${systemStateString}]`
+                        });
+                    }
+                }
+
+                return JSON.stringify({
+                    result: `Unknown action requested. Please ask to 'init', 'save', or 'restore'.\n\n[HIDDEN SYSTEM STATE FOR NEXT TURN: ${JSON.stringify(parsedData)}]`
+                });
+
+            } catch (e) {
+                return JSON.stringify({ error: `Storage Engine Error: ${e.message || e.toString()}` });
+            }
+        };
+    </script>
+</body>
 </html>
